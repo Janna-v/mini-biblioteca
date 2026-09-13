@@ -1,45 +1,110 @@
 # Mini Biblioteca
 
-Frontend per consultare un catalogo di libri, richiedere un prestito e registrare una restituzione.
+Progetto individuale full stack per consultare un catalogo di libri, verificarne la disponibilità, richiedere prestiti e registrare restituzioni.
 
-**Progetto individuale.** Esercitazione sull'interfaccia React, sullo stato condiviso e sulle richieste HTTP.
+## Architettura e tecnologie
 
-## Funzionalità
+Frontend React e TypeScript → API REST Node.js/Express e TypeScript → PostgreSQL.
 
-- Visualizzazione di titolo, autore, anno e disponibilità dei libri.
-- Inserimento del nome dell'utente per la richiesta di prestito.
-- Richiesta di prestito e restituzione tramite API.
-- Aggiornamento dello stato di disponibilità nel frontend.
-- Gestione del caricamento e degli errori del catalogo.
+Il frontend usa Vite, Bootstrap e Zustand. Il backend usa `pg` per il database, Zod per la validazione, dotenv per le variabili ambiente e middleware per CORS, log e gestione degli errori. I test backend usano Vitest e Supertest.
 
-## Tecnologie e struttura
+## Struttura
 
-React, TypeScript, Vite, Zustand, Fetch API e Bootstrap.
+```text
+mini-biblioteca/
+├── frontend/          # React, componenti, pagine e store Zustand
+├── src/               # Backend Express
+│   ├── controllers/
+│   ├── services/
+│   ├── routes/
+│   ├── db/
+│   ├── schemas/
+│   ├── middlewares/
+│   └── tests/
+├── sql/database.sql   # Tabelle e catalogo iniziale
+├── package.json       # Dipendenze e test backend
+├── tsconfig.json
+├── .env.example
+├── .gitignore
+└── README.md
+```
 
-- `src/components/`: catalogo, scheda del libro e nome utente.
-- `src/pages/BibliotecaPage.tsx`: pagina della biblioteca.
-- `src/stores/biblioteca.ts`: stato Zustand e richieste al backend.
-- `src/types/Libro.ts`: tipo dei dati del libro.
+Il backend rimane in `src/` nella root per conservare i percorsi e la configurazione originali. La root Git comprende l'intero progetto.
 
-## Avvio
+## Funzionalità e API
 
-Con Node.js compatibile con Vite 8 e npm, dalla radice del repository:
+- Visualizzazione del catalogo e della disponibilità dei libri.
+- Richiesta di un prestito con il nome dell'utente.
+- Restituzione di un libro e aggiornamento della disponibilità.
 
-```powershell
+| Metodo | Endpoint | Scopo |
+| --- | --- | --- |
+| GET | `/api/libri` | Elenco libri; il parametro `disponibile=true` seleziona quelli disponibili. |
+| POST | `/api/prestiti` | Richiede un prestito con JSON `libro_id` e `nome_utente`. |
+| POST | `/api/prestiti/restituzione` | Registra la restituzione con JSON `libro_id`. |
+
+## Configurazione locale
+
+Servono Node.js compatibile con le dipendenze bloccate nei lockfile, npm e PostgreSQL. Per Vite 8 usare Node.js 20.19+ oppure 22.12+ compatibile; è consigliato Node.js 22 aggiornato.
+
+Creare nella root una copia di `.env.example` chiamata `.env`, senza sovrascrivere un file locale esistente. Compilare:
+
+| Variabile | Significato |
+| --- | --- |
+| `DB_USER` | Utente PostgreSQL locale. |
+| `DB_HOST` | Host PostgreSQL, normalmente `localhost`. |
+| `DB_NAME` | Nome del database, ad esempio `mini_biblioteca`. |
+| `DB_PASSWORD` | Password dell'utente PostgreSQL, da tenere solo nel file locale. |
+| `DB_PORT` | Porta PostgreSQL, normalmente `5432`. |
+| `PORT` | Porta backend, `3000`. |
+| `FRONTEND_URL` | Origine consentita da CORS, `http://localhost:5173`. |
+
+Il frontend attuale chiama `http://localhost:3000`: mantenere questa porta per il backend. `.env`, dipendenze e risultati delle build sono esclusi da Git.
+
+## Database
+
+Creare un database PostgreSQL vuoto e applicare lo script dalla root, sostituendo `UTENTE_LOCALE` con il proprio utente:
+
+```sh
+createdb -U UTENTE_LOCALE mini_biblioteca
+psql -U UTENTE_LOCALE -d mini_biblioteca -f sql/database.sql
+```
+
+Lo script crea `libri` e `prestiti` e inserisce otto libri di esempio. Eseguire il popolamento una sola volta: gli INSERT ripetuti aggiungono altre righe. Si può eseguire lo stesso script tramite un client PostgreSQL sul database scelto.
+
+## Installazione e avvio
+
+Dalla root, installare e compilare il backend:
+
+```sh
+npm ci
+npx tsc
+node dist/index.js
+```
+
+In un altro terminale, avviare il frontend:
+
+```sh
+cd frontend
 npm ci
 npm run dev
 ```
 
-Aprire l'indirizzo indicato da Vite nel terminale. Sono disponibili anche `npm run build` e `npm run lint`.
+Aprire l'indirizzo mostrato da Vite, normalmente `http://localhost:5173`. Per compilare il frontend:
 
-## Backend necessario
+```sh
+cd frontend
+npm run build
+```
 
-Il backend **non è incluso in questo repository**. Per utilizzare catalogo e prestiti serve un servizio compatibile su `http://localhost:3000`, con CORS configurato per il frontend.
+## Test
 
-| Metodo | Percorso | Dati inviati |
-| --- | --- | --- |
-| GET | `/api/libri` | Nessuno; il frontend si aspetta un elenco di libri |
-| POST | `/api/prestiti` | `libro_id`, `nome_utente` |
-| POST | `/api/prestiti/restituzione` | `libro_id` |
+Dalla root:
 
-Senza questo servizio l'interfaccia non può completare le operazioni. Non sono fornite istruzioni di installazione del backend, perché il suo codice non è disponibile qui. L'avvio del frontend e l'integrazione non sono stati eseguiti durante la revisione documentale.
+```sh
+npm test
+```
+
+I test sono in `src/tests/` e richiedono PostgreSQL raggiungibile e almeno un libro disponibile. Usare un database dedicato ai test, inizializzato con `sql/database.sql`, impostando le variabili `DB_*` per quel database. Il test del prestito crea dati e registra una restituzione: non eseguirlo su un database con dati da conservare. I test non creano né ripuliscono automaticamente il database.
+
+Questa pubblicazione riunisce frontend e backend già esistenti e conserva la cronologia Git precedente. Non introduce modifiche alla logica applicativa o allo schema SQL.
